@@ -1,5 +1,7 @@
 CREATE DATABASE RaiseCodeQuality;
 GO
+ALTER DATABASE RaiseCodeQuality SET TRUSTWORTHY ON;
+GO
 USE RaiseCodeQuality;
 GO
 

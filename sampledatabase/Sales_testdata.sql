@@ -1,49 +1,18 @@
-/*
-Setup for sample query database
+-- Sales Test Data
 
-create cryptographics
-- certificate SalesCert 
-- symmetric key CorpSalesSymKey
-
-create schemas
-- create schema tSalesHeader
-- create schema tSalesOrderDetail
-- create schema tSalesReports
-
-
-create tables
-- CREATE TABLE SalesHeader
-- CREATE TABLE SalesOrderDetail
-- CREATE TABLE SalesPerson
-- CREATE TABLE Products
-
-create procedures
-- CREATE PROCEDURE GetShippingDateDelayForOrder 
-
-*/
--- create cryptographics
-create certificate SalesCert ENCRYPTION BY PASSWORD = 'UseStr0ngP%ssw7rdsAl#a5ys' WITH SUBJECT = 'SalesDiscountCert';
-
-create symmetric key CorpSalesSymKey
-with algorithm = AES_256
-, IDENTITY_VALUE = 'The Redgate SQL Prompt Challenge'
-, KEY_SOURCE = 'The Hitchikers Guid'
-ENCRYPTION BY CERTIFICATE Salescert;
+CREATE SCHEMA TestData;
 GO
+/*********************************************************************************************
 
 
--- create schemas
-EXEC tsqlt.NewTestClass @ClassName = N'tSalesHeader';
-GO
-EXEC tsqlt.NewTestClass @ClassName = N'tSalesOrderDetail';
-GO
-EXEC tsqlt.NewTestClass @ClassName = N'tSalesReports';
-GO
+-- test data
 
 
--- create tables
+*********************************************************************************************/
 
-CREATE TABLE SalesHeader
+
+
+CREATE TABLE TestData.SalesHeader
 ( SalesOrderId INT PRIMARY KEY NONCLUSTERED
 , OrderDate DATETIME
 , duedate DATETIME
@@ -61,7 +30,9 @@ CREATE TABLE SalesHeader
 , taxamount MONEY
 , totaldue MONEY
 );
-INSERT dbo.SalesHeader
+
+
+INSERT TestData.SalesHeader
         ( SalesOrderId
         , OrderDate
         , duedate
@@ -79,14 +50,14 @@ INSERT dbo.SalesHeader
         , taxamount
         , totaldue
         )
-VALUES  ( 1, GETDATE() , DATEADD( DAY, 7, GETDATE()), DATEADD( DAY, 2, GETDATE()), 1, 0, 'AB234323', '34562', 1, 2,1, 5, 3, 200, 20, 220)
+VALUES
+        ( 3, GETDATE() , DATEADD( DAY, 10, GETDATE()), null, 1, 0, 'AB234366', '44562', 1, 2,1, 5, 3, 200, 20, 220)
+      , ( 1, GETDATE() , DATEADD( DAY, 7, GETDATE()), DATEADD( DAY, 2, GETDATE()), 1, 0, 'AB234323', '34562', 1, 2,1, 5, 3, 200, 20, 220)
       , ( 2, GETDATE() , DATEADD( DAY, 5, GETDATE()), DATEADD( DAY, 1, GETDATE()), 1, 0, 'AB23433', '234562', 1, 2,1, 5, 3, 400, 20, 420)
 ;
 
 GO
-
-
-CREATE TABLE SalesOrderDetail
+CREATE TABLE TestData.SalesOrderDetail
 ( SalesOrderID INT
 , SalesOrderDetailID INT PRIMARY KEY NONCLUSTERED
 , OrderQuantity INT
@@ -98,7 +69,7 @@ CREATE TABLE SalesOrderDetail
 OPEN SYMMETRIC KEY CorpSalesSymKey
   DECRYPTION BY CERTIFICATE SalesCert WITH PASSWORD = 'UseStr0ngP%ssw7rdsAl#a5ys';
 
-INSERT INTO dbo.SalesOrderDetail
+INSERT INTO TestData.SalesOrderDetail
 ( SalesOrderID, SalesOrderDetailID, OrderQuantity, ProductID, UnitPrice, DiscountPercent, LineTotal)
 VALUES  ( 1, 1, 10, 2, 10, ENCRYPTBYKEY(KEY_GUID('CorpSalesSymKey'),'0.0'), 100)
       , ( 1, 2, 22, 3, 5, ENCRYPTBYKEY(KEY_GUID('CorpSalesSymKey'),'0.1'), 100)
@@ -108,12 +79,12 @@ VALUES  ( 1, 1, 10, 2, 10, ENCRYPTBYKEY(KEY_GUID('CorpSalesSymKey'),'0.0'), 100)
 ;
 CLOSE ALL SYMMETRIC KEYS;
 GO
-CREATE TABLE SalesPerson
+CREATE TABLE TestData.SalesPerson
 ( SalesPersonID INT PRIMARY KEY NONCLUSTERED
 , SalesPersonFirstName VARCHAR(100)
 , SalesPersonLastName VARCHAR(100)
 );
-INSERT dbo.SalesPerson
+INSERT TestData.SalesPerson
         ( SalesPersonID
         , SalesPersonFirstName
         , SalesPersonLastName
@@ -124,14 +95,14 @@ GO
 
 
 GO
-CREATE TABLE Products
+CREATE TABLE TestData.Products
 ( ProductID INT IDENTITY(1,1) PRIMARY KEY NONCLUSTERED
 , ProductName VARCHAR(200)
 , ProductDescription VARCHAR(MAX)
 , active bit
 )
 
-INSERT dbo.Products
+INSERT TestData.Products
         ( ProductName
         , ProductDescription
         , active
@@ -142,24 +113,44 @@ VALUES  ( 'Widget 1', 'The best widget we produce so far', 0 )
      ,  ( 'Widget 4.0', 'Same as it ever was', 1 );
 
 GO
-/*****************************************************
--- create procedures
-*****************************************************/
-
-CREATE PROCEDURE GetShippingDateDelayForOrder 
-@SalesOrderID int
-AS
-BEGIN
-SELECT sh.SalesOrderId
-     , sh.OrderDate
-	 , sh.shipdate
-	 , DATEDiff(DAY, sh.OrderDate, sh.shipdate) AS 'DelayDays'
- FROM dbo.SalesHeader AS sh
- WHERE sh.SalesOrderId = @SalesOrderID
-      
-
-END
 
 
 
+CREATE PROCEDURE TestData.ReloadTable
+ @tablename VARCHAR(500) = 'All'
+ AS
+ BEGIN
  
+ IF @tablename = 'SalesHeader' OR @tablename = 'ALL'
+  BEGIN
+    TRUNCATE TABLE SalesHeader;
+	INSERT dbo.SalesHeader
+	  SELECT * FROM TestData.SalesHeader AS sh
+  END
+ IF @tablename = 'SalesOrderDetail' OR @tablename = 'ALL'
+  BEGIN
+    TRUNCATE TABLE dbo.SalesOrderDetail;
+	INSERT dbo.SalesOrderDetail
+	  SELECT * FROM TestData.SalesOrderDetail AS sod
+  END
+ IF @tablename = 'SalesPerson' OR @tablename = 'ALL'
+  BEGIN
+    TRUNCATE TABLE dbo.SalesPerson;
+	INSERT dbo.SalesPerson
+	  SELECT * FROM TestData.SalesPerson AS SP
+  END
+
+ IF @tablename = 'Products' OR @tablename = 'ALL'
+  BEGIN
+    TRUNCATE TABLE dbo.Products;
+	SET IDENTITY_INSERT dbo.Products on
+	INSERT dbo.Products
+	    ( ProductID, ProductName
+	    , ProductDescription
+	    , active
+	    )
+	  SELECT * FROM TestData.Products AS p 
+	SET IDENTITY_INSERT dbo.Products off
+  END
+  
+END
