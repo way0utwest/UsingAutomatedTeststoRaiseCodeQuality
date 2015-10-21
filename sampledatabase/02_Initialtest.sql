@@ -20,26 +20,26 @@ BEGIN
     
     SET NOCOUNT ON
     
-    Declare @Output VarChar(max)
-    Set @Output = ''
-  
-    SELECT	@Output = @Output + SPECIFIC_SCHEMA + '.' + SPECIFIC_NAME + Char(13) + Char(10)
-    From	INFORMATION_SCHEMA.ROUTINES
-    Where	SPECIFIC_NAME COLLATE SQL_LATIN1_GENERAL_CP1_CI_AI LIKE 'sp[_]%'
-            And SPECIFIC_NAME COLLATE SQL_LATIN1_GENERAL_CP1_CI_AI NOT LIKE '%diagram%'
-            AND ROUTINE_SCHEMA <> 'tSQLt'
-    Order By SPECIFIC_SCHEMA,SPECIFIC_NAME
+-- Act  
+    SELECT	'Stored Procedure Name' = s.name + '.' + o.name
+	INTO #actual
+    From	sys.objects o
+            INNER JOIN sys.schemas s ON s.schema_id = o.schema_id
+            LEFT OUTER JOIN sys.extended_properties e ON o.object_id = e.major_id
+                                                              AND e.class_desc = 'OBJECT_OR_COLUMN'
+                                                              AND e.name = 'sp_Exception'
+    Where	o.type = 'P'
+            AND s.name <> 'tsqlt'
+			AND o.name COLLATE SQL_LATIN1_GENERAL_CP1_CI_AI LIKE 'sp[_]%'
+            And o.name COLLATE SQL_LATIN1_GENERAL_CP1_CI_AI NOT LIKE '%diagram%'
+            AND e.value != 1
+    Order By s.name, o.name
 
-    If @Output > '' 
-        Begin
-            Set @Output = Char(13) + Char(10) 
-                          + 'For more information:  '
-                          + 'http://blogs.lessthandot.com/index.php/DataMgmt/DBProgramming/MSSQLServer/don-t-start-your-procedures-with-sp_'
-                          + Char(13) + Char(10) 
-                          + Char(13) + Char(10) 
-                          + @Output
-            EXEC tSQLt.Fail @Output
-        End 
+    EXEC tsqlt.AssertEmptyTable
+      @TableName = N'#actual'
+    , -- nvarchar(max)
+      @Message = N'There are stored procedures named sp_' -- nvarchar(max)
+    
 END;
 GO
 CREATE PROCEDURE [SQLCop].[test Columns with float data type]
@@ -117,21 +117,21 @@ BEGIN
 
 -- Assemble
 DECLARE @output nvarchar(max)
-, @tables nvarchar(4000);
 
 -- act
-SELECT @tables = COALESCE (@tables + ', ', '' ) + AllTables.name
-  FROM    ( SELECT    o .name ,
-                    o .object_id AS id ,
+SELECT AllTables.name
+ INTO #actual
+  FROM    ( SELECT    o.name ,
+                    o.object_id AS id ,
                     COALESCE( e. value, 0) AS 'PKException'
           FROM      sys.objects o
-                    INNER JOIN sys.schemas s ON s. schema_id = o .schema_id
-                    LEFT OUTER JOIN sys.extended_properties e ON o. object_id = e .major_id
-                                                              AND e. class = 1
-                                                              AND e. class_desc = 'OBJECT_OR_COLUMN'
-                                                              AND e. name = 'PKException'
-          WHERE     o .type = 'U'
-                    AND s .name <> 'tsqlt'
+                    INNER JOIN sys.schemas s ON s. schema_id = o.schema_id
+                    LEFT OUTER JOIN sys.extended_properties e ON o.object_id = e .major_id
+                                                              AND e.value = 1
+                                                              AND e.class_desc = 'OBJECT_OR_COLUMN'
+                                                              AND e.name = 'PKException'
+          WHERE     o.type = 'U'
+                    AND s.name <> 'tsqlt'
         ) AS AllTables
         LEFT JOIN ( SELECT  parent_object_id
                     FROM    sys. objects
@@ -142,12 +142,91 @@ WHERE    PrimaryKeys. parent_object_id IS NULL
 ORDER BY AllTables. name;
 
 -- assert
-select @output = 'These tables need a PRIMARY key:' + @tables;
-EXEC tsqlt. AssertEquals @Expected = '', @Actual = @tables, @Message = @output
+EXEC tsqlt.AssertEmptyTable @TableName = N'#actual', -- nvarchar(max)
+  @Message = N'There are tables without a primary key.' -- nvarchar(max)
 END
+
 GO
 
 
 
 -- new test class
 EXEC tsqlt.NewTestClass @ClassName = N'tSalesOrder' -- nvarchar(max)
+
+
+EXEC tSQLt.NewTestClass 'LocalTaxForOrderTests';
+GO
+CREATE FUNCTION LocalTaxForOrderTests.[0.2 sales tax] (
+   @state CHAR(2),
+   @amount NUMERIC(12, 3)
+)
+RETURNS NUMERIC(12, 3)
+AS
+BEGIN
+  RETURN 0.2;
+END;
+GO
+CREATE PROCEDURE LocalTaxForOrderTests.[test dbo.SetLocalTaxRate uses dbo.CalcSalesTaxForSale]
+AS
+BEGIN
+  --Assemble
+  EXEC tSQLt.FakeTable @TableName = 'dbo.SalesOrderDetail';
+  EXEC tSQLt.FakeFunction 
+       @FunctionName = 'dbo.CalcSalesTaxForSale', 
+       @FakeFunctionName = 'LocalTaxForOrderTests.[0.2 sales tax]';
+
+  INSERT INTO dbo.SalesOrderDetail(SalesOrderDetailID,LineTotal,ShippingState)
+  VALUES(42,100,'PA');
+
+  --Act
+  EXEC dbo.SetLocalTaxRate @OrderId = 42;
+
+  --Assert
+  SELECT O.SalesOrderDetailID,O.TaxAmount
+  INTO #Actual
+  FROM dbo.SalesOrderDetail AS O;
+  
+  SELECT TOP(0) *
+  INTO #Expected
+  FROM #Actual;
+  
+  INSERT INTO #Expected
+  VALUES(42,20);
+
+  EXEC tSQLt.AssertEqualsTable '#Expected','#Actual';
+END;
+GO
+CREATE FUNCTION LocalTaxForOrderTests.[confirm parameters(100, PA)] (
+   @state CHAR(2),
+   @amount NUMERIC(12, 3)
+)
+RETURNS NUMERIC(12, 3)
+AS
+BEGIN
+  RETURN CASE WHEN @state = 'PA' AND @amount = 100 
+           THEN 1 
+           ELSE ('{@state='''+@state+''', @amount = '+CAST(@amount AS VARCHAR(MAX))+'}')/0 
+         END;
+END;
+GO
+CREATE PROCEDURE LocalTaxForOrderTests.[test dbo.SetLocalTaxRate passes correct parameters to dbo.CalcSalesTaxForSale]
+AS
+BEGIN
+  --Assemble
+  EXEC tSQLt.FakeTable @TableName = 'dbo.SalesOrderDetail';
+  EXEC tSQLt.FakeFunction 
+       @FunctionName = 'dbo.CalcSalesTaxForSale', 
+       @FakeFunctionName = 'LocalTaxForOrderTests.[confirm parameters(100, PA)]';
+
+  INSERT INTO dbo.SalesOrderDetail(SalesOrderDetailID,LineTotal,ShippingState)
+  VALUES(42,100,'PA');
+
+  --Act
+  EXEC tSQLt.ExpectNoException;
+  
+  EXEC dbo.SetLocalTaxRate @OrderId = 42;
+
+  --Assert
+END;
+GO
+
