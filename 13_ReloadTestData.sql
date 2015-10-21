@@ -3,12 +3,11 @@ ALTER PROCEDURE [tSalesHeader].[test Check for ship date before order date raise
 AS
 BEGIN
 -- Assemble
-CREATE TABLE #expected
-( SalesOrderId INT PRIMARY KEY NONCLUSTERED
-, OrderDate DATETIME
-, shipdate DATETIME
-, delay int
-);
+SELECT SalesOrderId, OrderDate, shipdate, 'delay' = 1
+into #expected
+FROM dbo.SalesHeader
+WHERE 1 = 0;
+
 
 INSERT #expected
     ( SalesOrderId
