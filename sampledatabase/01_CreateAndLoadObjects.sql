@@ -53,7 +53,24 @@ GO
 
 
 -- create tables
+IF OBJECT_ID('dbo.ConfigValues') IS NOT NULL
+  DROP TABLE dbo.ConfigValues;
+GO
+CREATE TABLE dbo.ConfigValues
+(
+  ConfigID INT IDENTITY(1,1)
+, ConfigName VARCHAR(100)
+, ConfigValue VARCHAR(100)
+, 
+)
+INSERT dbo.ConfigValues
+        ( ConfigName ,ConfigValue )
+VALUES  ( 'SalesTargetDoM' ,'22' )
 
+GO
+IF OBJECT_ID('dbo.SalesHeader') IS NOT NULL
+  DROP TABLE dbo.SalesHeader;
+GO
 CREATE TABLE SalesHeader
 ( SalesOrderId INT PRIMARY KEY NONCLUSTERED
 , OrderDate DATETIME
@@ -90,10 +107,13 @@ INSERT dbo.SalesHeader
         , taxamount
         , totaldue
         )
-VALUES  ( 1, GETDATE() , DATEADD( DAY, 7, GETDATE()), DATEADD( DAY, 2, GETDATE()), 1, 0, 'AB234323', '34562', 1, 2,1, 5, 3, 200, 20, 220)
+VALUES 
+        ( 1, GETDATE() , DATEADD( DAY, 7, GETDATE()), DATEADD( DAY, 2, GETDATE()), 1, 0, 'AB234323', '34562', 1, 2,1, 5, 3, 200, 20, 220)
       , ( 2, GETDATE() , DATEADD( DAY, 5, GETDATE()), DATEADD( DAY, 1, GETDATE()), 1, 0, 'AB23433', '234562', 1, 2,1, 5, 3, 400, 20, 420)
 ;
 
+ 
+ -- get data from dbo.SalesHeader
 GO
 
 
@@ -122,18 +142,26 @@ VALUES  ( 1, 1, 10, 2, 10, ENCRYPTBYKEY(KEY_GUID('CorpSalesSymKey'),'0.0'), 100,
 
 CLOSE ALL SYMMETRIC KEYS;
 GO
+IF OBJECT_ID('dbo.SalesPerson') IS NOT NULL
+  DROP TABLE dbo.SalesPerson;
+GO
 CREATE TABLE SalesPerson
 ( SalesPersonID INT PRIMARY KEY NONCLUSTERED
 , SalesPersonFirstName VARCHAR(100)
 , SalesPersonLastName VARCHAR(100)
+, SalesPersonEmail VARCHAR(500)
+, TargetSales money
 );
 INSERT dbo.SalesPerson
         ( SalesPersonID
         , SalesPersonFirstName
         , SalesPersonLastName
+		, SalesPersonEmail
+		, TargetSales
         )
-VALUES  ( 1, 'David', 'Smith' )
-    , ( 2, 'Gordon', 'Gecko' )
+VALUES  ( 1, 'Bud', 'Fox', 'bud.fox@gmail.com', 20000.00 )
+    , ( 2, 'Gordon', 'Gecko', 'MrBig@Wallst.com', 40000.00 )
+    , ( 3, 'Carolyn', 'Gecko', 'CGecko@wallst.com', 12000.00 )
 GO
 
 
@@ -539,4 +567,138 @@ AS
 
     CLOSE ALL SYMMETRIC KEYS;
   END
+
+
+IF OBJECT_ID('dbo.GetTopSalesPersonForCurrentMonth') IS NOT NULL
+    DROP PROCEDURE dbo.GetTopSalesPersonForCurrentMonth;
+GO
+CREATE PROCEDURE GetTopSalesPersonForCurrentMonth
+AS
+    BEGIN
+  -- get dates of current month
+        DECLARE @bgdt DATE = DATEADD(MONTH ,
+                                     DATEDIFF(MONTH ,'19000101' ,GETDATE()) ,
+                                     '19000101')
+          , @enddt DATE = DATEADD(MONTH ,
+                                  DATEDIFF(MONTH ,'19000101' ,GETDATE()) + 1 ,
+                                  '19000101')
+
+        SELECT  TOP 3
+		         sh.SalesPersonID
+              , 'TotalSales' = SUM(sh.totaldue)
+        FROM    dbo.SalesHeader sh
+                INNER JOIN dbo.SalesPerson sp ON sp.SalesPersonID = sh.SalesPersonID
+        GROUP BY sh.SalesPersonID
+
+    END 
+
+
+IF OBJECT_ID('dbo.CustomMailer') IS NOT NULL
+    DROP PROCEDURE dbo.CustomMailer 
+GO
+CREATE PROCEDURE dbo.CustomMailer
+    @email VARCHAR(500)
+  , @msg VARCHAR(MAX)
+AS
+    BEGIN
+        SELECT  'MailStatus' = 1
+              , 'MailMsg' = 'The Email was delivered on Oct 29, 2015 at 1:30pm'
+	 -- call custom mailer DLL here.
+    END 
+
+
+IF OBJECT_ID('dbo.SendSalesPersonSaleNotification') IS NOT NULL
+    DROP PROCEDURE dbo.SendSalesPersonSaleNotification
+GO
+CREATE PROCEDURE dbo.SendSalesPersonSaleNotification
+    @salespersonid INT
+  , @sales MONEY
+AS
+    BEGIN
+        DECLARE @target MONEY
+          , @firstname VARCHAR(200)
+          , @email VARCHAR(500);
+   
+        DECLARE @status TABLE
+            (
+              mailstatus INT
+            , mailmsg VARCHAR(500)
+            );
+
+        SELECT  @target = TargetSales
+              , @firstname = SalesPersonFirstName
+              , @email = SalesPersonEmail
+        FROM    dbo.SalesPerson
+        WHERE   SalesPersonID = @salespersonid
+
+        DECLARE @msg VARCHAR(MAX)
+
+        SELECT  @msg = 'Dear ' + @firstname + CHAR(13) + CHAR(10)
+                + 'Your current sales are $' + @sales
+        SELECT  @msg = @msg + ', but your target is $' + @target + '.'
+
+        INSERT  @status
+                EXEC CustomMailer @email ,@msg
  
+        IF ( SELECT mailstatus
+             FROM   @status
+           ) != 1
+            EXEC CustomEmailError @status
+
+    END
+GO
+
+IF OBJECT_ID('dbo.NotifySalespersonofSlowSales') IS NOT NULL
+    DROP PROCEDURE dbo.NotifySalespersonofSlowSales
+GO
+CREATE PROCEDURE NotifySalespersonofSlowSales
+AS
+    BEGIN
+
+        DECLARE @DoM INT;
+
+        SELECT  @DoM = CAST(ConfigValue AS INT)
+        FROM    dbo.ConfigValues
+        WHERE   ConfigName = 'SalesTargetDoM';
+
+        IF DATEPART(DAY ,GETDATE()) >= @DoM
+            BEGIN	
+   -- get dates of current month
+                DECLARE @bgdt DATE = DATEADD(MONTH ,
+                                             DATEDIFF(MONTH ,'19000101' ,
+                                                      GETDATE()) ,'19000101')
+                  , @enddt DATE = DATEADD(MONTH ,
+                                          DATEDIFF(MONTH ,'19000101' ,
+                                                   GETDATE()) + 1 ,'19000101')
+                  , @salespersonid INT
+                  , @totalsales MONEY
+				  , @targetsales MONEY;
+
+                DECLARE SlowSales CURSOR
+                FOR
+                    SELECT  sh.SalesPersonID
+                          , 'TotalSales' = SUM(sh.totaldue)
+                          , sp.TargetSales
+                    FROM    dbo.SalesHeader sh
+                            INNER JOIN dbo.SalesPerson sp ON sp.SalesPersonID = sh.SalesPersonID
+                    GROUP BY sh.SalesPersonID
+                          , sp.TargetSales
+                    HAVING  sp.TargetSales > SUM(sh.totaldue);
+
+				OPEN SlowSales;
+
+                FETCH NEXT FROM SlowSales INTO @salespersonid ,@totalsales, @targetsales;
+                WHILE @@FETCH_STATUS = 0
+                    BEGIN
+                        EXEC SendSalesPersonSaleNotification @salespersonid;
+                        FETCH NEXT FROM SlowSales INTO @salespersonid ,
+                            @totalsales ,
+							@targetsales;
+                    END;
+    
+
+            END;
+		DEALLOCATE SlowSales;   
+    END;
+GO
+
