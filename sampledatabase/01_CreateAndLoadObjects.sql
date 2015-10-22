@@ -702,3 +702,30 @@ AS
     END;
 GO
 
+IF OBJECT_ID('dbo.UF_CalcDiscountForSale') IS NOT NULL
+    DROP FUNCTION dbo.UF_CalcDiscountForSale;
+GO
+CREATE FUNCTION dbo.UF_CalcDiscountForSale ( @QtyPurchased INT )
+RETURNS NUMERIC(10 ,3)
+/*
+-- Test Code
+
+select dbo.UF_CalcDiscountForSale(10);
+select dbo.UF_CalcDiscountForSale(25);
+select dbo.UF_CalcDiscountForSale(125);
+
+*/
+AS
+    BEGIN
+        DECLARE @i NUMERIC(10,3);
+
+        SELECT  @i = CASE WHEN ( @QtyPurchased > 101 ) THEN 0.1
+                          WHEN ( @QtyPurchased > 20 ) AND (@QtyPurchased < 100)
+                               THEN 0.05
+                          ELSE 0.0
+                     END
+
+        RETURN @i
+    END
+
+GO
