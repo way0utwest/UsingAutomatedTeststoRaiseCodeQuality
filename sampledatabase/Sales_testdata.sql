@@ -153,7 +153,7 @@ GO
 
 CREATE TABLE TestData.ConfigValues
 (
-  ConfigID INT IDENTITY(1,1)
+  ConfigID INT IDENTITY(1,1) PRIMARY KEY
 , ConfigName VARCHAR(100)
 , ConfigValue VARCHAR(100)
 , 
@@ -229,7 +229,7 @@ IF OBJECT_ID('TestData.Salestax') IS NOT NULL
   DROP TABLE TestData.Salestax;
 -- Create the sales tax table
 CREATE TABLE TestData.Salestax (
-   statecode VARCHAR(2),
+   statecode VARCHAR(2) PRIMARY KEY,
    taxamount NUMERIC(4, 3)
   );
 GO

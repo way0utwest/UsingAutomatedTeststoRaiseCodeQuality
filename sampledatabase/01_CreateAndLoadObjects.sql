@@ -72,7 +72,7 @@ IF OBJECT_ID('dbo.ConfigValues') IS NOT NULL
 GO
 CREATE TABLE dbo.ConfigValues
 (
-  ConfigID INT IDENTITY(1,1)
+  ConfigID INT IDENTITY(1,1) PRIMARY KEY
 , ConfigName VARCHAR(100)
 , ConfigValue VARCHAR(100)
 , 
@@ -265,7 +265,7 @@ IF OBJECT_ID('dbo.Salestax') IS NOT NULL
   DROP TABLE dbo.Salestax;
 -- Create the sales tax table
 CREATE TABLE dbo.Salestax (
-   statecode VARCHAR(2),
+   statecode VARCHAR(2) PRIMARY KEY,
    taxamount NUMERIC(4, 3)
   );
 GO
@@ -397,21 +397,21 @@ BEGIN
   RETURN @tax; 
 
 END;
+go
 
-
-CREATE PROCEDURE GetShippingDateDelayForOrder 
-@SalesOrderID int
+CREATE PROCEDURE GetShippingDateDelayForOrder @SalesOrderID INT
 AS
-BEGIN
-SELECT sh.SalesOrderId
-     , sh.OrderDate
-	 , sh.shipdate
-	 , DATEDiff(DAY, sh.OrderDate, sh.shipdate) AS 'DelayDays'
- FROM dbo.SalesHeader AS sh
- WHERE sh.SalesOrderId = @SalesOrderID
+    BEGIN
+        SELECT  sh.SalesOrderId
+              , sh.OrderDate
+              , 'shipdate' = ISNULL(sh.shipdate, DATEADD( DAY, 2, sh.orderdate))
+              , DATEDIFF(DAY ,sh.OrderDate ,
+                         ISNULL(sh.shipdate ,DATEADD(DAY ,2 ,sh.OrderDate))) AS 'DelayDays'
+        FROM    dbo.SalesHeader AS sh
+        WHERE   sh.SalesOrderId = @SalesOrderID;
       
 
-END
+    END;
 GO
 
 IF OBJECT_ID('dbo.spRegionsAdd') IS NOT NULL
@@ -539,7 +539,7 @@ BEGIN
 END;
 GO
 
-
+GO
 IF OBJECT_ID('dbo.SalesOrderInsert') IS NOT NULL
   DROP PROCEDURE dbo.SalesOrderInsert;
 GO
@@ -582,6 +582,7 @@ AS
     CLOSE ALL SYMMETRIC KEYS;
   END
 
+GO
 
 IF OBJECT_ID('dbo.GetTopSalesPersonForCurrentMonth') IS NOT NULL
     DROP PROCEDURE dbo.GetTopSalesPersonForCurrentMonth;

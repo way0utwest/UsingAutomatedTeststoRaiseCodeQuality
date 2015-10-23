@@ -13,7 +13,7 @@ CREATE TABLE #expected
 ( SalesOrderId INT PRIMARY KEY NONCLUSTERED
 , OrderDate DATETIME
 , shipdate DATETIME
-, delay datetime
+, delay int
 );
 
 INSERT #expected
@@ -61,7 +61,7 @@ CREATE TABLE #expected
 ( SalesOrderId INT PRIMARY KEY NONCLUSTERED
 , OrderDate DATETIME
 , shipdate DATETIME
-, delay datetime
+, delay int
 );
 
 INSERT #expected

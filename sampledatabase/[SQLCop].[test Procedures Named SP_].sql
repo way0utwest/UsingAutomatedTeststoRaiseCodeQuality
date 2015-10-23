@@ -1,5 +1,3 @@
-USE [RaiseCodeQuality]
-GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -26,7 +24,7 @@ BEGIN
             AND s.name <> 'tsqlt'
 			AND o.name COLLATE SQL_LATIN1_GENERAL_CP1_CI_AI LIKE 'sp[_]%'
             And o.name COLLATE SQL_LATIN1_GENERAL_CP1_CI_AI NOT LIKE '%diagram%'
-            AND e.value != 1
+            AND (e.value != 1 OR e.value IS NULL)
     Order By s.name, o.name
 
     EXEC tsqlt.AssertEmptyTable
@@ -35,4 +33,3 @@ BEGIN
       @Message = N'There are stored procedures named sp_' -- nvarchar(max)
     
 END;
-
