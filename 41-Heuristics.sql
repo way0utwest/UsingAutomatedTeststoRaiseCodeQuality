@@ -14,7 +14,7 @@ Using Automated Testing to Raise Code Quality - 41-Heuristics
 
 -- examine the function.
 SELECT dbo.UF_CalcDiscountForSale(25);
-
+go
 
 
 
@@ -32,9 +32,9 @@ AS
         SELECT  @actual = dbo.UF_CalcDiscountForSale(19);
   -- assert    
         EXEC tSQLt.AssertEquals @Expected = @expected ,@Actual = @actual ,
-            @Message = N'An incorrect discount calculation occurred.'
+            @Message = N'An incorrect discount calculation occurred.';
   
-    END
+    END;
 GO
 
 CREATE PROCEDURE [tSalesOrderDetail].[test Check Discount Calculation for qty 20 = 5%]

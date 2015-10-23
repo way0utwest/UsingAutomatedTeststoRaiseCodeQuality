@@ -18,7 +18,7 @@ INSERT #expected
   VALUES
     ( 1, '2015-10-19 16:10:22.250', '2015-10-21 16:10:22.250', 2 )
 	 
-	 -- get data from dbo.SalesHeader
+ -- get data from dbo.SalesHeader
 -- create results table
 SELECT *
  INTO #actual

@@ -5,6 +5,7 @@ Test data options
 */
 
 CREATE PROCEDURE [tsalesheader].[test Check for ship date before order date raises error]
+-- ALTER PROCEDURE [tsalesheader].[test Check for ship date before order date raises error]
 AS
 BEGIN
 -- Assemble
@@ -18,7 +19,7 @@ CREATE TABLE #expected
 INSERT #expected
     ( SalesOrderId    , OrderDate    , shipdate    , delay    )  
   VALUES
-    ( 1, '2015-10-19 14:55:36.770', '2015-10-21 14:55:36.770', 2 )
+    ( 1, '2015-10-19 14:55:00', '2015-10-21 14:55:00', 2 )
 
 -- create results table
 SELECT *
@@ -31,11 +32,11 @@ EXEC tsqlt.FakeTable @TableName = N'SalesHeader',
   @SchemaName = N'dbo';
 
 INSERT dbo.SalesHeader
-     SalesOrderId    , OrderDate    , duedate    , shipdate    , statusid    , OnlineOrder    , PurchaseOrderNumber    , AccountNumber
+ (    SalesOrderId    , OrderDate    , duedate    , shipdate    , statusid    , OnlineOrder    , PurchaseOrderNumber    , AccountNumber
     , CustomerID    , SalesPersonID    , BilltoAddressID    , ShiptoAddressID    , ShippingMethodID    , Subtotal    , taxamount    , totaldue    )
   VALUES
-    ( 1, GETDATE() , DATEADD( DAY, 7, GETDATE()), DATEADD( DAY, 2, GETDATE()), 1, 0, 'AB234323', '34562', 1, 2,1, 5, 3, 200, 20, 220)
-  , ( 2, GETDATE() , DATEADD( DAY, 5, GETDATE()), DATEADD( DAY, 1, GETDATE()), 1, 0, 'AB23433', '234562', 1, 2,1, 5, 3, 400, 20, 420)
+    ( 1, '2015-10-19 14:55:00' , '2015-10-26 14:55:00', '2015-10-21 14:55:00', 1, 0, 'AB234323', '34562', 1, 2,1, 5, 3, 200, 20, 220)
+  , ( 2, '2015-10-21 9:00:00' , '2015-10-25 9:00:00', '2015-10-22 9:00:00', 1, 0, 'AB23433', '234562', 1, 2,1, 5, 3, 400, 20, 420)
 
 
 -- Act
@@ -52,6 +53,7 @@ END
 
 
 CREATE PROCEDURE [tsalesheader].[test Include Default ship date when shipdate null]
+-- ALTER PROCEDURE [tsalesheader].[test Include Default ship date when shipdate null]
 AS
 BEGIN
 -- Assemble
@@ -65,7 +67,8 @@ CREATE TABLE #expected
 INSERT #expected
     ( SalesOrderId    , OrderDate    , shipdate    , delay    )  
   VALUES
-    ( 1, '2015-10-19 14:55:36.770', '2015-10-21 14:55:36.770', 2 )
+    ( 1, '2015-10-19 14:55:00', '2015-10-21 14:55:00', 2 )
+
 
 -- create results table
 SELECT *
@@ -78,11 +81,11 @@ EXEC tsqlt.FakeTable @TableName = N'SalesHeader',
   @SchemaName = N'dbo';
 
 INSERT dbo.SalesHeader
-     SalesOrderId    , OrderDate    , duedate    , shipdate    , statusid    , OnlineOrder    , PurchaseOrderNumber    , AccountNumber
+   (  SalesOrderId    , OrderDate    , duedate    , shipdate    , statusid    , OnlineOrder    , PurchaseOrderNumber    , AccountNumber
     , CustomerID    , SalesPersonID    , BilltoAddressID    , ShiptoAddressID    , ShippingMethodID    , Subtotal    , taxamount    , totaldue    )
   VALUES
-    ( 1, GETDATE() , DATEADD( DAY, 7, GETDATE()), DATEADD( DAY, 2, GETDATE()), 1, 0, 'AB234323', '34562', 1, 2,1, 5, 3, 200, 20, 220)
-  , ( 2, GETDATE() , DATEADD( DAY, 5, GETDATE()), DATEADD( DAY, 1, GETDATE()), 1, 0, 'AB23433', '234562', 1, 2,1, 5, 3, 400, 20, 420)
+    ( 1, '2015-10-19 14:55:00' , '2015-10-26 14:55:00', '2015-10-21 14:55:00', 1, 0, 'AB234323', '34562', 1, 2,1, 5, 3, 200, 20, 220)
+  , ( 2, '2015-10-21 9:00:00' , '2015-10-25 9:00:00', null, 1, 0, 'AB23433', '234562', 1, 2,1, 5, 3, 400, 20, 420)
 
 
 -- Act
@@ -98,3 +101,7 @@ END
 
 
 
+GO
+
+EXEC tsqlt.run '[tSalesHeader]';
+GO
