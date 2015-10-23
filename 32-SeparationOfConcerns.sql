@@ -65,4 +65,6 @@ BEGIN
 END;
 
 GO
+
 EXEC tsqlt.run '[tSalesPerson].[test Check SalesPerson Missing Target Gets Email Created]';
+

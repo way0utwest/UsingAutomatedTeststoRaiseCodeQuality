@@ -28,7 +28,7 @@ AS
 BEGIN
   UPDATE O 
   SET
-         o.TaxAmount = (o.OrderQuantity * o.UnitPrice) * dbo.CalcSalesTaxForSale(O.ShippingState,O.LineTotal)
+         o.TaxAmount = (o.OrderQuantity * o.UnitPrice) * dbo.CalcSalesTaxForSale(O.ShippingState,o.OrderQuantity * o.UnitPrice)
     FROM dbo.SalesOrderDetail AS O
    WHERE O.SalesOrderDetailID = @OrderId;    
 END;
@@ -76,6 +76,7 @@ BEGIN
 END;
 
 
+-- examine the function
 -- We are using the LineTotal column only here.
 -- We need to refactor the test, but this should concern us. Is there other code that depends on the 
 -- Line total, and not the unit price against the discount?
@@ -94,7 +95,7 @@ EXEC dbo.SalesOrderInsert
 , -- money
   @ShippingState = '' -- varchar(3)
 
-
-  -- we will see failures in other code
-   -- What do we do? We must comply, so we need to change all code to use pre-discount amounts for tax
-  -- We are preventing potential bugs or other issues in the future by catching issues early.
+-- we are calculating tax on the discount amount.
+-- we will see failures in other code
+-- What do we do? We must comply, so we need to change all code to use pre-discount amounts for tax
+-- We are preventing potential bugs or other issues in the future by catching issues early.
