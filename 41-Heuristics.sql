@@ -70,7 +70,13 @@ AS
 GO
 
 
--- However that's confusing and it results in a lot of tests for simple rules. Let's simplify.
+
+
+
+
+
+-- However that's confusing and it results in a lot of tests for simple rules. 
+-- Let's simplify.
 CREATE PROCEDURE [tSalesOrderDetail].[test Check Discount Calculation for qty rules]
 AS
     BEGIN
