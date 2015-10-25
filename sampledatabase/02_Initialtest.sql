@@ -43,8 +43,6 @@ BEGIN
 
     EXEC tsqlt.AssertEmptyTable
       @TableName = N'#actual'
-    , -- nvarchar(max)
-      @Message = N'There are stored procedures named sp_' -- nvarchar(max)
     
 END;
 GO

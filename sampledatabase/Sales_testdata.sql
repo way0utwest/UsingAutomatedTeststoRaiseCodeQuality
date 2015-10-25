@@ -287,13 +287,32 @@ VALUES  ( 'AK', 0.0714 ),
         ( 'WV', 0.014 ),
         ( 'WY', 0.014 );
 GO
+IF OBJECT_ID('TestData.EmailTemplates') IS NOT NULL
+  DROP TABLE TestData.EmailTemplates;
+GO
+CREATE TABLE TestData.EmailTemplates
+( emailtemplateid INT IDENTITY(1,1) PRIMARY KEY
+, TemplateName VARCHAR(200)
+, EmailSubject VARCHAR(200)
+, active BIT
+, msg VARCHAR(MAX)
+, dataset tinyint
+)
+GO
+INSERT  TestData.EmailTemplates
+        ( TemplateName ,EmailSubject ,active ,msg ,dataset )
+VALUES  ( 'Order Confirmation' ,'Order Confirmation for Order %s' ,1 ,'A long message' ,1 )
+      , ( 'SalesPerson Sale Alert' ,'Monthly Sales Target Notification' ,1 ,'A really long default message' ,1 );
+GO
 
 
 
 
 
 
-
+GO
+IF OBJECT_ID('TestData.ReloadTable') IS NOT NULL
+  DROP PROCEDURE TestData.ReloadTable;
 GO
 
 CREATE PROCEDURE TestData.ReloadTable
@@ -317,7 +336,18 @@ CREATE PROCEDURE TestData.ReloadTable
   BEGIN
     TRUNCATE TABLE dbo.SalesPerson;
 	INSERT dbo.SalesPerson
-	  SELECT * FROM TestData.SalesPerson AS SP
+	        ( SalesPersonID
+	        , SalesPersonFirstName
+	        , SalesPersonLastName
+	        , SalesPersonEmail
+	        , TargetSales
+	        )
+	  SELECT SP.SalesPersonID
+           , SP.SalesPersonFirstName
+           , SP.SalesPersonLastName
+	       , SalesPersonEmail
+	       , TargetSales
+FROM TestData.SalesPerson AS SP
   END
 
  IF @tablename = 'Products' OR @tablename = 'ALL'
@@ -359,7 +389,21 @@ CREATE PROCEDURE TestData.ReloadTable
 	        ( statecode ,taxamount )
 	  SELECT * FROM TestData.Salestax
   END
+ IF @tablename = 'EmailTeamplates' OR @tablename = 'ALL'
+  BEGIN
+    TRUNCATE TABLE dbo.EmailTemplates;
+	SET IDENTITY_INSERT dbo.EmailTemplates ON
+	INSERT dbo.EmailTemplates
+	        ( emailtemplateid, TemplateName, EmailSubject, active, msg )
+	  SELECT emailtemplateid
+           , TemplateName
+           , EmailSubject
+           , active
+           , msg
+       FROM TestData.EmailTemplates
+	   WHERE dataset = 1
+	SET IDENTITY_INSERT dbo.EmailTemplates OFF
+  END
 
-  
 END
 

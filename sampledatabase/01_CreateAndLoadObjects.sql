@@ -33,6 +33,7 @@ create tables
 - CREATE TABLE Products
 - CREATE TABLE dbo.Regions
 - CREATE TABLE dbo.Salestax
+- CREATE TABLE dbo.EmailTemplates
 
 create procedures
 - CREATE FUNCTION dbo.CalcSalesTaxForSale
@@ -323,7 +324,22 @@ VALUES  ( 'AK', 0.0714 ),
         ( 'WV', 0.014 ),
         ( 'WY', 0.014 );
 GO
-
+IF OBJECT_ID('dbo.EmailTemplates') IS NOT NULL
+  DROP TABLE dbo.EmailTemplates;
+GO
+CREATE TABLE dbo.EmailTemplates
+( emailtemplateid INT IDENTITY(1,1) PRIMARY KEY
+, TemplateName VARCHAR(200)
+, EmailSubject VARCHAR(200)
+, active BIT
+, msg VARCHAR(MAX)
+)
+GO
+-- add basic data
+INSERT  dbo.EmailTemplates
+        ( TemplateName ,EmailSubject ,active ,msg)
+VALUES  ( 'Order Confirmation' ,'Order Confirmation for Order %s' ,1 , 'a long default message' )
+      , ( 'SalesPerson Target Alert' ,'Monthly Sales Target Notification for %s' ,1 , 'A really long message' );
 
 /*****************************************************
 -- create procedures
@@ -613,6 +629,7 @@ IF OBJECT_ID('dbo.CustomMailer') IS NOT NULL
 GO
 CREATE PROCEDURE dbo.CustomMailer
     @email VARCHAR(500)
+  , @subject VARCHAR(250)
   , @msg VARCHAR(MAX)
 AS
     BEGIN
@@ -620,7 +637,7 @@ AS
               , 'MailMsg' = 'The Email was delivered on Oct 29, 2015 at 1:30pm'
 	 -- call custom mailer DLL here.
     END 
-
+go
 
 IF OBJECT_ID('dbo.SendSalesPersonSaleNotification') IS NOT NULL
     DROP PROCEDURE dbo.SendSalesPersonSaleNotification
@@ -653,7 +670,7 @@ AS
         SELECT  @msg = @msg + ', but your target is $' + @target + '.'
 
         INSERT  @status
-                EXEC CustomMailer @email ,@msg
+                EXEC CustomMailer @email, 'Monthly Email Sales Target', @msg
  
         IF ( SELECT mailstatus
              FROM   @status
@@ -744,3 +761,34 @@ AS
     END
 
 GO
+
+IF OBJECT_ID('dbo.SendEmailtoSalesPerson') IS NOT NULL
+    DROP PROCEDURE dbo.SendEmailtoSalesPerson
+GO
+CREATE PROCEDURE SendEmailtoSalesPerson
+  @template VARCHAR(200)
+  , @salespersonid int
+AS
+BEGIN
+    DECLARE @subject VARCHAR(200)
+	, @msg VARCHAR(MAX)
+	, @salesemail VARCHAR(500)
+	, @token VARCHAR(200)
+
+	SELECT @salesemail = SalesPersonEmail
+	, @token = SalesPersonFirstName + ' ' + SalesPersonLastName
+	FROM dbo.SalesPerson
+	WHERE SalesPersonID = @salespersonid
+
+	SELECT @subject = REPLACE(et.EmailSubject, '%s', @token)
+	     , @msg = et.msg
+	 FROM dbo.EmailTemplates et
+	 WHERE et.TemplateName = @template
+	 AND et.active = 1
+
+	EXEC dbo.CustomMailer @email = @salesemail, @subject = @subject ,@msg = @msg
+
+END
+GO
+
+
