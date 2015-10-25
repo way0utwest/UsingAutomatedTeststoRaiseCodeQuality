@@ -1,5 +1,18 @@
--- Test test data
--- a better way of managing things.
+/*
+Using Automated Testing to Raise Code Quality
+
+Better test data examples
+
+Rather than using inline data, what about a procedure that centralizes a set of data?
+Data can be reused, and more importantly, changed as requirements evolve.
+
+Copyright 2015 Steve Jones, dkRanch.net
+This code is provided as is for demonstration purposes. It may not be suitable for
+your environment. Please test this on your own systems. This code may not be republished 
+or redistributed by anyone without permission.
+You are free to use this code inside of your own organization.
+
+*/
 CREATE PROCEDURE tsqlt.LoadSalesHeader
 AS
 BEGIN

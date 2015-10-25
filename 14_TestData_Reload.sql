@@ -1,3 +1,19 @@
+/*
+Using Automated Testing to Raise Code Quality
+
+Reloading test data
+This is the way in which we might fix data that we've changed in development to ensure we have a clean development 
+environment.
+
+
+Copyright 2015 Steve Jones, dkRanch.net
+This code is provided as is for demonstration purposes. It may not be suitable for
+your environment. Please test this on your own systems. This code may not be republished 
+or redistributed by anyone without permission.
+You are free to use this code inside of your own organization.
+
+*/
+
 -- adding row of test data.
 -- open the test data file.
 
