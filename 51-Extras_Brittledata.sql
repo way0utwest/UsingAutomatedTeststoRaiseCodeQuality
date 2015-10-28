@@ -11,6 +11,13 @@ or redistributed by anyone without permission.
 You are free to use this code inside of your own organization.
 
 */
+
+
+
+-- Skip
+-- INCOMPLETE DEMO
+
+
 EXEC tsqlt.NewTestClass @ClassName = N'tMailerTests'
 GO
 IF OBJECT_ID('[tMailerTests].[test SendEmailtoSalesPerson for SalesPerson Target Alert template with Carolyn Gecko token]') IS NOT NULL
