@@ -17,7 +17,6 @@ EXEC GetSalesByCustomer 1;
 go
 EXEC tsqlt.run 'tSalesReports';
 GO
-
 -- We want to refactor this to allow limits by month and year. Let's change the proc.
 ALTER PROCEDURE dbo.GetSalesByCustomer
    @customerid int
@@ -48,3 +47,6 @@ GO
 -- We have a problem. We have multiple procedures using this procedure.
 -- We have lots of dependencies.
 -- Do we want to refactor lots of procedures or add a new one.
+
+
+-- Perhaps we just want a new procedure for sales by customer by date.
