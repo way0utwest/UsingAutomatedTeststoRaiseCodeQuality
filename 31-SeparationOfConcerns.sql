@@ -42,8 +42,9 @@ GO
 
 -- fails
 -- why?
--- let's examine the procedure
-
+-- let's examine the test procedure
+-- Look at the calculation. The function uses a different value
+-- The Line total has a discount, where the new proc being tested uses qty*price
 
 ALTER PROCEDURE [LocalTaxForOrderTests].[test dbo.SetLocalTaxRate uses dbo.CalcSalesTaxForSale]
 AS
@@ -74,7 +75,7 @@ BEGIN
 
   EXEC tSQLt.AssertEqualsTable '#Expected','#Actual';
 END;
-
+go
 
 -- examine the function
 -- We are using the LineTotal column only here.
@@ -82,19 +83,44 @@ END;
 -- Line total, and not the unit price against the discount?
 -- Let's examine the SalesOrderInsert procedure
 
-EXEC dbo.SalesOrderInsert
-  @OrderId = 0
-, -- int
-  @qty = 0
-, -- int
-  @ProductID = 0
-, -- int
-  @UnitPrice = NULL
-, -- money
-  @DiscountPercent = NULL
-, -- money
-  @ShippingState = '' -- varchar(3)
+ALTER PROCEDURE [dbo].[SalesOrderInsert]
+  @OrderId INT
+, @qty INT
+, @ProductID INT
+, @UnitPrice MONEY
+, @DiscountPercent MONEY
+, @ShippingState VARCHAR(3)
+AS
+  BEGIN
 
+    OPEN SYMMETRIC KEY CorpSalesSymKey
+  DECRYPTION BY CERTIFICATE SalesCert WITH PASSWORD = 'UseStr0ngP%ssw7rdsAl#a5ys';
+
+    INSERT INTO dbo.SalesOrderDetail
+        (
+          SalesOrderID
+        , OrderQuantity
+        , ProductID
+        , UnitPrice
+        , DiscountPercent
+		, LineTotal
+		, TaxAmount
+        , ShippingState
+        )
+        SELECT
+            @OrderId
+          , @qty
+          , @ProductID
+          , @UnitPrice
+          , ENCRYPTBYKEY(KEY_GUID('CorpSalesSymKey'),
+                         CAST(@DiscountPercent AS NVARCHAR(20)))
+		  , (@qty * @UnitPrice) - (@qty * @UnitPrice * @DiscountPercent) 
+		  , dbo.CalcSalesTaxForSale(@ShippingState, (@qty * @UnitPrice) - (@qty * @UnitPrice * @DiscountPercent))
+          , @ShippingState
+
+
+    CLOSE ALL SYMMETRIC KEYS;
+  END
 -- we are calculating tax on the discount amount.
 -- we will see failures in other code
 -- What do we do? We must comply, so we need to change all code to use pre-discount amounts for tax
