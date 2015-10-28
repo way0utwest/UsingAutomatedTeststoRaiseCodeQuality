@@ -17,9 +17,87 @@ You are free to use this code inside of your own organization.
 
 */
 EXEC tsqlt.run '[LocalTaxForOrderTests]'
+GO
 
 -- everything works
 
+
+-- Let's change the function in the procedure.
+-- Alter the tax code for PA. However, we make a mistake.
+ALTER FUNCTION [dbo].[CalcSalesTaxForSale] (
+   @state CHAR(2),
+   @amount NUMERIC(12, 3)
+  )
+RETURNS NUMERIC(12, 3)
+AS
+BEGIN
+  DECLARE @tax NUMERIC(12, 3);
+
+  SELECT  @tax = @amount * CASE WHEN @state = 'AK' THEN 0.05
+                                WHEN @state = 'AL' THEN 0.02
+                                WHEN @state = 'AR' THEN 0.04
+                                WHEN @state = 'AZ' THEN 0.04
+                                WHEN @state = 'CA' THEN 0.04
+                                WHEN @state = 'CO' THEN 0.04
+                                WHEN @state = 'CT' THEN 0.04
+                                WHEN @state = 'DE' THEN 0.04
+                                WHEN @state = 'FL' THEN 0.04
+                                WHEN @state = 'GA' THEN 0.04
+                                WHEN @state = 'HI' THEN 0.04
+                                WHEN @state = 'IA' THEN 0.04
+                                WHEN @state = 'ID' THEN 0.04
+                                WHEN @state = 'IL' THEN 0.04
+                                WHEN @state = 'IN' THEN 0.04
+                                WHEN @state = 'KS' THEN 0.04
+                                WHEN @state = 'KY' THEN 0.04
+                                WHEN @state = 'LA' THEN 0.04
+                                WHEN @state = 'MA' THEN 0.04
+                                WHEN @state = 'MD' THEN 0.04
+                                WHEN @state = 'ME' THEN 0.04
+                                WHEN @state = 'MI' THEN 0.04
+                                WHEN @state = 'MN' THEN 0.04
+                                WHEN @state = 'MO' THEN 0.04
+                                WHEN @state = 'MS' THEN 0.04
+                                WHEN @state = 'MT' THEN 0.04
+                                WHEN @state = 'NC' THEN 0.04
+                                WHEN @state = 'ND' THEN 0.04
+                                WHEN @state = 'NE' THEN 0.04
+                                WHEN @state = 'NH' THEN 0.04
+                                WHEN @state = 'NJ' THEN 0.04
+                                WHEN @state = 'NM' THEN 0.04
+                                WHEN @state = 'NV' THEN 0.04
+                                WHEN @state = 'NY' THEN 0.04
+                                WHEN @state = 'OH' THEN 0.04
+                                WHEN @state = 'OK' THEN 0.04
+                                WHEN @state = 'OR' THEN 0.04
+                                WHEN @state = 'PS' THEN 0.02
+                                WHEN @state = 'RI' THEN 0.04
+                                WHEN @state = 'SC' THEN 0.04
+                                WHEN @state = 'SD' THEN 0.04
+                                WHEN @state = 'TN' THEN 0.04
+                                WHEN @state = 'TX' THEN 0.04
+                                WHEN @state = 'UT' THEN 0.04
+                                WHEN @state = 'VA' THEN 0.04
+                                WHEN @state = 'VT' THEN 0.04
+                                WHEN @state = 'WA' THEN 0.04
+                                WHEN @state = 'WI' THEN 0.04
+                                WHEN @state = 'WV' THEN 0.04
+                                WHEN @state = 'WY' THEN 0.04
+                           END;
+            
+  RETURN @tax; 
+
+END;
+GO
+
+-- re-run the test
+EXEC tsqlt.run '[LocalTaxForOrderTests]';
+GO
+
+
+-- Still passes. We are not brittle here.
+
+-- This still catches errors.
 -- let's alter the procedure.
 -- we decided that the sales tax is based on the pre-discount amount.
 ALTER PROCEDURE dbo.SetLocalTaxRate
