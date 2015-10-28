@@ -16,7 +16,7 @@ INSERT #expected
     , delay
     )
   VALUES
-    ( 1, '2015-10-19 16:10:22.250', '2015-10-21 16:10:22.250', 2 )
+    ( 1, '2015-10-19 14:55:00', '2015-10-21 14:55:00', 2 )
 	 
  -- get data from dbo.SalesHeader
 -- create results table
@@ -42,3 +42,7 @@ END
 
 GO
 
+EXEC tsqlt.run '[tSalesHeader].[test Check for ship date before order date raises error]';
+GO
+ 
+ -- get data from salesheader

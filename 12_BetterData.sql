@@ -31,10 +31,9 @@ INSERT dbo.SalesHeader
 
 
 END
+go
 
-
-CREATE PROCEDURE [tSalesHeader].[test Check for ship date before order date raises error]
--- ALTER PROCEDURE [tSalesHeader].[test Check for ship date before order date raises error]
+ALTER PROCEDURE [tSalesHeader].[test Check for ship date before order date raises error]
 AS
 BEGIN
 -- Assemble
@@ -52,7 +51,7 @@ INSERT #expected
     , delay
     )
   VALUES
-    ( 1, '2015-10-19 14:55:36.770', '2015-10-21 16:09:43.127', 2 )
+    ( 1, '2015-10-19 14:55:00', '2015-10-21 14:55:00', 2 )
 	 
 	 -- get data from dbo.SalesHeader
 -- create results table

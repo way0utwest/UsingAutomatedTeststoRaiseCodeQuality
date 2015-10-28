@@ -12,6 +12,7 @@ or redistributed by anyone without permission.
 You are free to use this code inside of your own organization.
 
 */
+-- Here are the example tests
 CREATE PROCEDURE [tsalesheader].[test Check for ship date before order date raises error]
 -- ALTER PROCEDURE [tsalesheader].[test Check for ship date before order date raises error]
 AS
@@ -58,7 +59,7 @@ EXEC tsqlt.AssertEqualsTable @Expected = N'#Expected', -- nvarchar(max)
  
 END
 
-
+go
 
 CREATE PROCEDURE [tsalesheader].[test Include Default ship date when shipdate null]
 -- ALTER PROCEDURE [tsalesheader].[test Include Default ship date when shipdate null]

@@ -12,7 +12,7 @@ or redistributed by anyone without permission.
 You are free to use this code inside of your own organization.
 
 */
-CREATE TABLE TestData.SalesPerson2
+CREATE TABLE testdata.SalesPerson2
 ( SalesPersonID INT PRIMARY KEY NONCLUSTERED
 , SalesPersonFirstName VARCHAR(100)
 , SalesPersonLastName VARCHAR(100)
@@ -45,13 +45,17 @@ CREATE PROCEDURE TestData.ReloadTable2
  IF @tablename = 'SalesPerson' OR @tablename = 'ALL'
   BEGIN
     TRUNCATE TABLE dbo.SalesPerson;
-	INSERT dbo.SalesPerson2
-	  SELECT * FROM TestData.SalesPerson AS SP
-	  WHERE testset = @testset
+	INSERT dbo.SalesPerson
+	  SELECT SP.SalesPersonID
+           , SP.SalesPersonFirstName
+           , SP.SalesPersonLastName
+           , SP.SalesPersonEmail
+           , SP.TargetSales
+          FROM TestData.SalesPerson2 AS SP
+	  WHERE  testset = @testset
   END
-
+end
   
-END
 
 
 GO
@@ -60,14 +64,20 @@ GO
 
 
 -- in a test procedure
-
-CREATE PROCEDURE [MyTests].[MyTestProc]
+DROP PROCEDURE [tSalesHeader].[test MyTestProc];
+GO
+CREATE PROCEDURE [tSalesHeader].[test MyTestProc]
 AS
-BEGIN
+    BEGIN
     -- assemble
-	EXEC tsqt.faketable 'SalesPerson2';
-    EXEC TestData.ReloadTable2 @tablename = 'SalesPerson2' ,@testset = 2;
-
+        EXEC tsqlt.faketable 'SalesPerson';
+        EXEC TestData.ReloadTable2 @tablename = 'SalesPerson' ,@testset = 2;
 	-- Act
-		
-END
+ 
+ -- get data from testdata.SalesPerson2	
+        EXEC tsqlt.assertequals '1' ,'1' ,'Bad data';
+    END;
+
+GO
+EXEC tsqlt.run '[tSalesHeader].[test MyTestProc]';
+GO
