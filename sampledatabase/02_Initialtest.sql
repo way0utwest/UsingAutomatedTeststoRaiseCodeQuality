@@ -146,8 +146,7 @@ WHERE    PrimaryKeys. parent_object_id IS NULL
 ORDER BY AllTables. name;
 
 -- assert
-EXEC tsqlt.AssertEmptyTable @TableName = N'#actual', -- nvarchar(max)
-  @Message = N'There are tables without a primary key.' -- nvarchar(max)
+EXEC tsqlt.AssertEmptyTable @TableName = N'#actual'
 END
 
 GO

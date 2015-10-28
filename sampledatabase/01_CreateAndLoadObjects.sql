@@ -183,7 +183,6 @@ VALUES  ( 1, 'Bud', 'Fox', 'bud.fox@gmail.com', 20000.00 )
 GO
 ALTER TABLE dbo.SalesPerson WITH CHECK ADD CONSTRAINT [iq_SalesPersonName] UNIQUE (SalesPersonFirstName, SalesPersonLastName);
 GO
-ALTER TABLE dbo.SalesPerson CHECK CONSTRAINT [iq_SalesPersonName];
 GO
 IF OBJECT_ID('dbo.SaleSalesperson') IS NOT NULL
   DROP TABLE dbo.SaleSalesperson;
@@ -372,6 +371,7 @@ CREATE TABLE dbo.SalesCommissions
 ( SalesPersonid INT
 , MinSale MONEY
 , commissionrate NUMERIC(5,3)
+ CONSTRAINT SalesCommissions_PK PRIMARY KEY (SalesPersonid, MinSale)
 );
 GO
 
