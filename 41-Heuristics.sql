@@ -70,11 +70,7 @@ AS
 GO
 
 
-
-
-
-
-
+-- We could continue to write other tests for different values and boudaries.
 -- However that's confusing and it results in a lot of tests for simple rules. 
 -- Let's simplify.
 CREATE PROCEDURE [tSalesOrderDetail].[test Check Discount Calculation for qty rules]
@@ -116,6 +112,8 @@ GO
 
 
 -- refactor procedure
+-- Set the boundaries carefully
+-- look at results
 IF OBJECT_ID('dbo.UF_CalcDiscountForSale') IS NOT NULL
     DROP FUNCTION dbo.UF_CalcDiscountForSale;
 GO
@@ -123,7 +121,6 @@ CREATE FUNCTION dbo.UF_CalcDiscountForSale ( @QtyPurchased INT )
 RETURNS NUMERIC(10 ,3)
 /*
 -- Test Code
-
 select dbo.UF_CalcDiscountForSale(10);
 select dbo.UF_CalcDiscountForSale(25);
 select dbo.UF_CalcDiscountForSale(125);
