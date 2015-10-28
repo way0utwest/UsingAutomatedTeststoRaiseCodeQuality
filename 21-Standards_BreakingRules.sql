@@ -10,8 +10,8 @@ GO
 
 
 -- check our database for current quality
-EXEC tsqlt.runall;
-
+EXEC tsqlt.run '[SQLCop]';
+go
 
 
 
@@ -92,14 +92,10 @@ GO
 EXEC sys.sp_updateextendedproperty
   @name = 'PKException'
 , @value = 0
-, -- sql_variant
-  @level0type = 'schema'
-, -- varchar(128)
-  @level0name = 'dbo'
-, -- sysname
-  @level1type = 'table'
-, -- varchar(128)
-  @level1name = 'SalesHeader_Staging' -- sysname
+, @level0type = 'schema'
+, @level0name = 'dbo'
+, @level1type = 'table'
+, @level1name = 'SalesHeader_Staging' -- sysname
   ;
 GO
 
