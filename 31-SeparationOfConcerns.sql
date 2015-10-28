@@ -45,7 +45,7 @@ GO
 -- let's examine the test procedure
 -- Look at the calculation. The function uses a different value
 -- The Line total has a discount, where the new proc being tested uses qty*price
-
+-- This is the current test code.
 ALTER PROCEDURE [LocalTaxForOrderTests].[test dbo.SetLocalTaxRate uses dbo.CalcSalesTaxForSale]
 AS
 BEGIN
@@ -77,7 +77,43 @@ BEGIN
 END;
 go
 
--- examine the function
+-- We need to alter the procedure with new column data
+ALTER PROCEDURE [LocalTaxForOrderTests].[test dbo.SetLocalTaxRate uses dbo.CalcSalesTaxForSale]
+AS
+BEGIN
+  --Assemble
+  EXEC tSQLt.FakeTable @TableName = 'dbo.SalesOrderDetail';
+  EXEC tSQLt.FakeFunction 
+       @FunctionName = 'dbo.CalcSalesTaxForSale', 
+       @FakeFunctionName = 'LocalTaxForOrderTests.[0.2 sales tax]';
+
+  INSERT INTO dbo.SalesOrderDetail(SalesOrderDetailID,LineTotal,ShippingState, unitprice, OrderQuantity)
+  VALUES(42,100,'PA', 20, 5);
+
+  --Act
+  EXEC dbo.SetLocalTaxRate @OrderId = 42;
+
+  --Assert
+  SELECT sod.SalesOrderDetailID,sod.TaxAmount
+  INTO #Actual
+  FROM dbo.SalesOrderDetail AS sod;
+  
+  SELECT TOP(0) *
+  INTO #Expected
+  FROM #Actual;
+  
+  INSERT INTO #Expected
+  VALUES(42,20);
+
+  EXEC tSQLt.AssertEqualsTable '#Expected','#Actual';
+END;
+go
+-- Rerun the test
+EXEC tsqlt.run '[LocalTaxForOrderTests]'
+
+
+
+-- Examine the Procedure at the top.
 -- We are using the LineTotal column only here.
 -- We need to refactor the test, but this should concern us. Is there other code that depends on the 
 -- Line total, and not the unit price against the discount?
