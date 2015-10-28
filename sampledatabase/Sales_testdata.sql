@@ -305,9 +305,47 @@ VALUES  ( 'Order Confirmation' ,'Order Confirmation for Order %s' ,1 ,'A long me
       , ( 'SalesPerson Sale Alert' ,'Monthly Sales Target Notification' ,1 ,'A really long default message' ,1 );
 GO
 
-
-
-
+IF OBJECT_ID('TestData.SalesCommissions') IS NOT NULL
+  DROP TABLE TestData.SalesCommissions;
+GO
+CREATE TABLE TestData.SalesCommissions 
+( SalesPersonid INT
+, MinSale MONEY
+, commissionrate NUMERIC(5,3)
+, dataset INT
+CONSTRAINT tSalesComm_PK PRIMARY KEY (SalesPersonid, MinSale)
+);
+GO
+INSERT TestData.SalesCommissions
+        ( SalesPersonid
+        , MinSale
+        , commissionrate
+        , dataset
+        )
+VALUES
+         ( 1, 0, 0.02, 1)
+      ,  ( 1, 1000, 0.04, 1)
+      ,  ( 1, 5000, 0.05, 1)
+      ,  ( 2, 0, 0.02, 1)
+      ,  ( 2, 1000, 0.03, 1)
+      ,  ( 2, 4000, 0.04, 1)
+      ,  ( 3, 500, 0.02, 1)
+      ,  ( 4, 500, 0.02, 1)
+ 
+go
+IF OBJECT_ID('TestData.SaleSalesperson') IS NOT NULL
+  DROP TABLE TestData.SaleSalesperson;
+GO
+CREATE TABLE TestData.SaleSalesperson
+( SalesOrderID INT
+, Salespersonid INT
+CONSTRAINT tSaleSalesPerson_PK PRIMARY KEY (SalesOrderID, Salespersonid)
+);
+go
+INSERT TestData.SaleSalesperson
+        ( SalesOrderID ,Salespersonid )
+VALUES  ( 1 ,1 )
+     ,  ( 2 ,1 )
 
 
 GO
@@ -404,6 +442,31 @@ FROM TestData.SalesPerson AS SP
 	   WHERE dataset = 1
 	SET IDENTITY_INSERT dbo.EmailTemplates OFF
   END
+ IF @tablename = 'SalesCommission' OR @tablename = 'ALL'
+  BEGIN
+    TRUNCATE TABLE dbo.SalesCommissions
+	   INSERT dbo.SalesCommissions
+	           ( SalesPersonid
+	           , MinSale
+	           , commissionrate
+	           )
+	  SELECT SalesPersonid
+           , MinSale
+           , commissionrate
+           FROM TestData.SalesCommissions
+  END
+
+ IF @tablename = 'SaleSalesPerson' OR @tablename = 'ALL'
+  BEGIN
+    TRUNCATE TABLE dbo.SaleSalesperson
+	
+    INSERT dbo.SaleSalesPerson
+	  SELECT SalesOrderID, Salespersonid
+           FROM TestData.SaleSalesperson
+  END
+
 
 END
+GO
 
+-- TestData.ReloadTable @tablename = 'SalesCommission'

@@ -234,3 +234,290 @@ BEGIN
 END;
 GO
 
+EXEC tsqlt.NewTestClass @ClassName = N'tSalesReports';
+GO
+IF OBJECT_ID('[tSalesReports].[test GetSalesByCustomer with 2 customer sales]') IS NOT NULL
+    DROP PROCEDURE [tSalesReports].[test GetSalesByCustomer with 2 customer sales]
+GO
+create procedure [tSalesReports].[test GetSalesByCustomer with 2 customer sales]
+as
+begin
+  -- Assemble
+  EXEC tsqlt.FakeTable @TableName = N'SalesHeader';
+
+  INSERT SalesHeader (SalesOrderId, OrderDate, CustomerID, totaldue)
+    VALUES (1, '20150601', 1, 400.00)
+	     , (2, '20150702', 1, 500.00);  
+  
+  SELECT customerid
+    , 'SalesMonth' = 'December'
+	, 'SalesYear' = 2015
+	, 'TotalSales' = totaldue
+    INTO #expected
+	FROM dbo.SalesHeader 
+	WHERE 1 = 0;
+
+   SELECT *
+    INTO #actual
+	FROM #Expected
+	WHERE 1 = 0;
+
+	INSERT #Expected
+	        ( CustomerID, SalesMonth, SalesYear, TotalSales )
+	VALUES  ( 1, 'June', 2015, 400.00 )
+	      , ( 1, 'July', 2015, 500.00 );
+
+  -- Act
+  INSERT #actual
+    EXEC GetSalesByCustomer 1;
+
+  -- Assert
+  exec tsqlt.AssertEqualsTable @Expected = N'#expected' ,@Actual = N'#actual' ,@FailMsg = N'The calculations are not correct.'
+  
+ end
+GO
+IF OBJECT_ID('[tSalesReports].[test GetCommissions by customer]') IS NOT NULL
+    DROP PROCEDURE [tSalesReports].[test GetCommissions by customer]
+GO
+create procedure [tSalesReports].[test GetCommissions by customer]
+as
+begin
+  -- Assemble
+  EXEC tsqlt.FakeTable @TableName = N'SalesHeader';
+
+  INSERT SalesHeader (SalesOrderId, OrderDate, CustomerID, totaldue)
+    VALUES (1, '20150601', 1, 400.00)
+	     , (2, '20150702', 1, 500.00);  
+  
+  EXEC tsqlt.FakeTable @TableName = N'SalesCommissions';
+
+  INSERT dbo.SalesCommissions
+          ( SalesPersonid
+          , MinSale
+          , commissionrate
+          )
+  VALUES  ( 1, 0, 0.1);
+
+  SELECT customerid
+    , 'SalesMonth' = 'December'
+	, 'SalesYear' = 2015
+	, 'Commission' = totaldue
+    INTO #expected
+	FROM dbo.SalesHeader 
+	WHERE 1 = 0;
+
+	INSERT #Expected
+	        ( CustomerID, SalesMonth, SalesYear, Commission )
+	VALUES  ( 1, 'June', 2015, 40.00 )
+	      , ( 1, 'July', 2015, 50.00 );
+
+   SELECT *
+    INTO #actual
+	FROM #Expected
+
+  -- Act
+    EXEC GetCommissionForCustomer 1;
+
+  -- Assert
+  exec tsqlt.AssertEqualsTable @Expected = N'#expected' ,@Actual = N'#actual' ,@FailMsg = N'The calculations are not correct.';
+  
+ end
+GO
+IF OBJECT_ID('[tSalesReports].[test GetTopCustomers for customer 1]') IS NOT NULL
+    DROP PROCEDURE [tSalesReports].[test GetTopCustomers for customer 1]
+GO
+create procedure [tSalesReports].[test GetTopCustomers for customer 1]
+as
+begin
+  -- Assemble
+  EXEC tsqlt.FakeTable @TableName = N'SalesHeader';
+
+  INSERT SalesHeader (SalesOrderId, OrderDate, CustomerID, totaldue)
+    VALUES (1, '20150601', 1, 400.00)
+	     , (2, '20150702', 1, 500.00);  
+  
+  EXEC tsqlt.FakeTable @TableName = N'SalesCommissions';
+
+  INSERT dbo.SalesCommissions
+          ( SalesPersonid
+          , MinSale
+          , commissionrate
+          )
+  VALUES  ( 1, 0, 0.1);
+
+  SELECT customerid
+    , 'SalesMonth' = 'December'
+	, 'SalesYear' = 2015
+	, 'Commission' = totaldue
+    INTO #expected
+	FROM dbo.SalesHeader 
+	WHERE 1 = 0;
+
+	INSERT #Expected
+	        ( CustomerID, SalesMonth, SalesYear, Commission )
+	VALUES  ( 1, 'June', 2015, 40.00 )
+	      , ( 1, 'July', 2015, 50.00 );
+
+   SELECT *
+    INTO #actual
+	FROM #Expected
+
+  -- Act
+    EXEC GetTopCustomers 1;
+
+  -- Assert
+  exec tsqlt.AssertEqualsTable @Expected = N'#expected' ,@Actual = N'#actual' ,@FailMsg = N'The calculations are not correct.';
+  
+ end
+GO
+
+
+IF OBJECT_ID('[tSalesReports].[test GetCommissionReport for customer 1]') IS NOT NULL
+    DROP PROCEDURE [tSalesReports].[test GetCommissionReport for customer 1]
+GO
+create procedure [tSalesReports].[test GetCommissionReport for customer 1]
+as
+begin
+  -- Assemble
+  EXEC tsqlt.FakeTable @TableName = N'SalesHeader';
+
+  INSERT SalesHeader (SalesOrderId, OrderDate, CustomerID, totaldue)
+    VALUES (1, '20150601', 1, 400.00)
+	     , (2, '20150702', 1, 500.00);  
+  
+  EXEC tsqlt.FakeTable @TableName = N'SalesCommissions';
+
+  INSERT dbo.SalesCommissions
+          ( SalesPersonid
+          , MinSale
+          , commissionrate
+          )
+  VALUES  ( 1, 0, 0.1);
+
+  SELECT customerid
+    , 'SalesMonth' = 'December'
+	, 'SalesYear' = 2015
+	, 'Commission' = totaldue
+    INTO #expected
+	FROM dbo.SalesHeader 
+	WHERE 1 = 0;
+
+	INSERT #Expected
+	        ( CustomerID, SalesMonth, SalesYear, Commission )
+	VALUES  ( 1, 'June', 2015, 40.00 )
+	      , ( 1, 'July', 2015, 50.00 );
+
+   SELECT *
+    INTO #actual
+	FROM #Expected
+
+  -- Act
+    EXEC GetCommissionReport 1;
+
+  -- Assert
+  exec tsqlt.AssertEqualsTable @Expected = N'#expected' ,@Actual = N'#actual' ,@FailMsg = N'The calculations are not correct.';
+  
+ end
+GO
+IF OBJECT_ID('[tSalesReports].[test GetTopSale for customer 1]') IS NOT NULL
+    DROP PROCEDURE [tSalesReports].[test GetTopSale for customer 1]
+GO
+create procedure [tSalesReports].[test GetTopSale for customer 1]
+as
+begin
+  -- Assemble
+  EXEC tsqlt.FakeTable @TableName = N'SalesHeader';
+
+  INSERT SalesHeader (SalesOrderId, OrderDate, CustomerID, totaldue)
+    VALUES (1, '20150601', 1, 400.00)
+	     , (2, '20150702', 1, 500.00);  
+  
+  EXEC tsqlt.FakeTable @TableName = N'SalesCommissions';
+
+  INSERT dbo.SalesCommissions
+          ( SalesPersonid
+          , MinSale
+          , commissionrate
+          )
+  VALUES  ( 1, 0, 0.1);
+
+  SELECT customerid
+    , 'SalesMonth' = 'December'
+	, 'SalesYear' = 2015
+	, 'Commission' = totaldue
+    INTO #expected
+	FROM dbo.SalesHeader 
+	WHERE 1 = 0;
+
+	INSERT #Expected
+	        ( CustomerID, SalesMonth, SalesYear, Commission )
+	VALUES  ( 1, 'June', 2015, 40.00 )
+	      , ( 1, 'July', 2015, 50.00 );
+
+   SELECT *
+    INTO #actual
+	FROM #Expected
+
+  -- Act
+    EXEC GetTopSale 1;
+
+  -- Assert
+  exec tsqlt.AssertEqualsTable @Expected = N'#expected' ,@Actual = N'#actual' ,@FailMsg = N'The calculations are not correct.';
+  
+ end
+GO
+IF OBJECT_ID('[tSalesReports].[test GetCommissions by customer no nested procs]') IS NOT NULL
+    DROP PROCEDURE [tSalesReports].[test GetCommissions by customer no nested procs]
+GO
+create procedure [tSalesReports].[test GetCommissions by customer no nested procs]
+as
+begin
+  -- Assemble
+  EXEC tsqlt.FakeTable @TableName = N'SalesHeader';
+
+  INSERT SalesHeader (SalesOrderId, OrderDate, CustomerID, totaldue)
+    VALUES (1, '20150601', 1, 400.00)
+	     , (2, '20150702', 1, 500.00);  
+  
+  EXEC tsqlt.FakeTable @TableName = N'SalesCommissions';
+
+  INSERT dbo.SalesCommissions
+          ( SalesPersonid
+          , MinSale
+          , commissionrate
+          )
+  VALUES  ( 1, 0, 0.1);
+
+  SELECT customerid
+    , 'SalesMonth' = 'December'
+	, 'SalesYear' = 2015
+	, 'Commission' = totaldue
+    INTO #expected
+	FROM dbo.SalesHeader 
+	WHERE 1 = 0;
+
+	INSERT #Expected
+	        ( CustomerID, SalesMonth, SalesYear, Commission )
+	VALUES  ( 1, 'June', 2015, 100.00 )
+	      , ( 1, 'July', 2015, 200.00 );
+
+   SELECT *
+    INTO #actual
+	FROM #Expected
+
+   EXEC tsqlt.SpyProcedure 
+       @ProcedureName = N'GetSalesByCustomer'
+     , @CommandToExecute = N'select 1, ''June'', 2015, 1000
+	                         union all
+							 select 1, ''August'', 2015, 2000
+	                        '
+   
+  -- Act
+      EXEC GetCommissionForCustomer 1;
+
+  -- Assert
+  exec tsqlt.AssertEqualsTable @Expected = N'#expected' ,@Actual = N'#actual' ,@FailMsg = N'The calculations are not correct.';
+  
+ end
+GO
+ 

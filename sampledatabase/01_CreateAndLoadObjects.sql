@@ -34,6 +34,7 @@ create tables
 - CREATE TABLE dbo.Regions
 - CREATE TABLE dbo.Salestax
 - CREATE TABLE dbo.EmailTemplates
+- CREATE TABLE SalesCommissions
 
 create procedures
 - CREATE FUNCTION dbo.CalcSalesTaxForSale
@@ -44,6 +45,7 @@ create procedures
 - CREATE FUNCTION dbo.UF_GetNextShippingDate
 - CREATE PROCEDURE spUpdateShippingDate
 - CREATE PROCEDURE dbo.SetLocalTaxRate
+- CREATE PROCEDURE dbo.SetSalesByCustomer
 
 
 
@@ -157,6 +159,7 @@ VALUES  ( 1, 1, 10, 2, 10, ENCRYPTBYKEY(KEY_GUID('CorpSalesSymKey'),'0.0'), 100,
 
 CLOSE ALL SYMMETRIC KEYS;
 GO
+
 IF OBJECT_ID('dbo.SalesPerson') IS NOT NULL
   DROP TABLE dbo.SalesPerson;
 GO
@@ -178,8 +181,24 @@ VALUES  ( 1, 'Bud', 'Fox', 'bud.fox@gmail.com', 20000.00 )
     , ( 2, 'Gordon', 'Gecko', 'MrBig@Wallst.com', 40000.00 )
     , ( 3, 'Carolyn', 'Gecko', 'CGecko@wallst.com', 12000.00 )
 GO
+ALTER TABLE dbo.SalesPerson WITH CHECK ADD CONSTRAINT [iq_SalesPersonName] UNIQUE (SalesPersonFirstName, SalesPersonLastName);
+GO
+ALTER TABLE dbo.SalesPerson CHECK CONSTRAINT [iq_SalesPersonName];
+GO
+IF OBJECT_ID('dbo.SaleSalesperson') IS NOT NULL
+  DROP TABLE dbo.SaleSalesperson;
+GO
+CREATE TABLE SaleSalesperson
+( SalesOrderID INT
+, Salespersonid INT
+CONSTRAINT SaleSalesPerson_PK PRIMARY KEY (SalesOrderID, Salespersonid)
+);
+go
 
 
+GO
+IF OBJECT_ID('dbo.Products') IS NOT NULL
+  DROP TABLE dbo.Products;
 GO
 CREATE TABLE Products
 ( ProductID INT IDENTITY(1,1) PRIMARY KEY NONCLUSTERED
@@ -187,7 +206,7 @@ CREATE TABLE Products
 , ProductDescription VARCHAR(MAX)
 , active bit
 )
-
+go
 INSERT dbo.Products
         ( ProductName
         , ProductDescription
@@ -324,6 +343,10 @@ VALUES  ( 'AK', 0.0714 ),
         ( 'WV', 0.014 ),
         ( 'WY', 0.014 );
 GO
+-- create unique index
+CREATE UNIQUE INDEX IX_RegionTax ON dbo.Salestax (statecode, taxamount) 
+GO
+
 IF OBJECT_ID('dbo.EmailTemplates') IS NOT NULL
   DROP TABLE dbo.EmailTemplates;
 GO
@@ -340,6 +363,18 @@ INSERT  dbo.EmailTemplates
         ( TemplateName ,EmailSubject ,active ,msg)
 VALUES  ( 'Order Confirmation' ,'Order Confirmation for Order %s' ,1 , 'a long default message' )
       , ( 'SalesPerson Target Alert' ,'Monthly Sales Target Notification for %s' ,1 , 'A really long message' );
+
+
+IF OBJECT_ID('dbo.SalesCommissions') IS NOT NULL
+  DROP TABLE dbo.SalesCommissions;
+GO
+CREATE TABLE dbo.SalesCommissions 
+( SalesPersonid INT
+, MinSale MONEY
+, commissionrate NUMERIC(5,3)
+);
+GO
+
 
 /*****************************************************
 -- create procedures
@@ -791,4 +826,119 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID('dbo.GetSalesByCustomer') IS NOT NULL
+    DROP PROCEDURE dbo.GetSalesByCustomer
+GO
+CREATE PROCEDURE dbo.GetSalesByCustomer
+   @customerid int
+ AS
+ begin
+ SELECT 
+  customerid
+  , 'SalesMonth' = DATENAME(MONTH, OrderDate)
+  , 'SalesYear' = DATEPART(YEAR, OrderDate)
+  , 'Total Sales' = SUM(totaldue)
+ FROM   dbo.SalesHeader
+ WHERE   CustomerID = @customerid
+ GROUP BY CustomerID, DATEPART(YEAR, OrderDate), DATENAME(MONTH, OrderDate)
+ ;
+ END
+ GO
 
+IF OBJECT_ID('dbo.GetCommissionForCustomer') IS NOT NULL
+    DROP PROCEDURE dbo.GetCommissionForCustomer
+GO
+-- GetCommissionForCustomer 1
+CREATE PROCEDURE dbo.GetCommissionForCustomer
+  @customerid int
+AS
+BEGIN
+   CREATE TABLE #commission (
+     customerid INT
+	 , salemonth VARCHAR(20)
+	 , saleyear INT
+	 , sales money
+   )    ;
+
+	INSERT #commission
+	  EXEC GetSalesByCustomer 1 -- @customerid
+
+   SELECT cf.customerid
+	  , 'Commission' = cf.sales * sc.commissionrate
+    FROM #commission cf
+	 INNER JOIN dbo.SalesCommissions sc
+	 ON cf.customerid = sc.SalesPersonid
+END 
+GO
+
+IF OBJECT_ID('dbo.GetTopCustomers') IS NOT NULL
+    DROP PROCEDURE dbo.GetTopCustomers
+GO
+CREATE PROCEDURE dbo.GetTopCustomers
+  @customerid int
+AS
+BEGIN
+   CREATE TABLE #commission (
+     customerid INT
+	 , salemonth VARCHAR(20)
+	 , saleyear INT
+	 , sales money
+   )    ;
+   
+
+	INSERT #commission
+	  EXEC GetSalesByCustomer @customerid;
+    SELECT TOP 2 *
+	 FROM #commission
+
+END
+GO
+IF OBJECT_ID('dbo.GetTopSale') IS NOT NULL
+    DROP PROCEDURE dbo.GetTopSale
+GO
+CREATE PROCEDURE dbo.GetTopSale
+  @customerid int
+AS
+BEGIN
+   CREATE TABLE #commission (
+     customerid INT
+	 , salemonth VARCHAR(20)
+	 , saleyear INT
+	 , sales money
+   )    ;
+   
+
+	INSERT #commission
+	  EXEC GetSalesByCustomer @customerid;
+    SELECT TOP 1 *
+	 FROM #commission
+
+END
+GO
+IF OBJECT_ID('dbo.GetCommissionReport') IS NOT NULL
+    DROP PROCEDURE dbo.GetCommissionReport
+GO
+CREATE PROCEDURE dbo.GetCommissionReport
+  @customerid int
+AS
+BEGIN
+   CREATE TABLE #commission (
+     customerid INT
+	 , salemonth VARCHAR(20)
+	 , saleyear INT
+	 , sales money
+   )    ;
+   
+
+	INSERT #commission
+	  EXEC GetSalesByCustomer @customerid;
+   SELECT TOP 1 
+      sp.SalesPersonFirstName, sp.SalesPersonLastName
+    FROM #commission cf
+	 INNER JOIN dbo.SalesCommissions sc
+	 ON cf.customerid = sc.SalesPersonid
+	 INNER JOIN dbo.SalesPerson sp
+	  ON sp.SalesPersonID = sc.SalesPersonid
+
+END
+GO
