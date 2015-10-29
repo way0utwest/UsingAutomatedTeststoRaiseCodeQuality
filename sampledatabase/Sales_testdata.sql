@@ -13,6 +13,9 @@ or redistributed by anyone without permission.
 You are free to use this code inside of your own organization.
 
 */
+USE RaiseCodeQuality
+GO
+
 -- Sales Test Data
 
 IF NOT EXISTS( SELECT * FROM sys.schemas WHERE name = 'TestData')

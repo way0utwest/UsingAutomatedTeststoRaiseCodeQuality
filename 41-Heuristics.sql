@@ -13,9 +13,9 @@ You are free to use this code inside of your own organization.
 -- We have a function for discounts, UF_CalcDiscountForSale
 -- Right now we have discounts of 5% and 10% based on quantity. however no one has every bought > 100.
 -- management wants to boost sales with new discounts. The rules are:
---    Qty >20 = 5%
---    Qty > 50 = 7.5%
---    Qty > 100 = 10%
+--    Qty more than 20 and less than 50 = 5%
+--    Qty more than 50 = 7.5%
+--    Qty more than 100 = 10%
 
 
 

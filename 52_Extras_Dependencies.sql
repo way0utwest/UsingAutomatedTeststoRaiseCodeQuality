@@ -18,6 +18,7 @@ go
 EXEC tsqlt.run 'tSalesReports';
 GO
 -- We want to refactor this to allow limits by month and year. Let's change the proc.
+-- We add a new parameter @month
 ALTER PROCEDURE dbo.GetSalesByCustomer
    @customerid int
    , @month int
